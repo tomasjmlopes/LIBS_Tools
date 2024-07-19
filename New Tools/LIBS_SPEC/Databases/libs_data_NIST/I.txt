@@ -1,0 +1,2 @@
+element	sp_num	obs_wl_air(nm)	unc_obs_wl	ritz_wl_air(nm)	unc_ritz_wl	intens	Aki(s^-1)	Acc	Ei(eV)	Ek(eV)	conf_i	term_i	J_i	conf_k	term_k	J_k	g_i	g_k	Type	tp_ref	line_ref	
+I	1	"206.1633"	"0.0003"	"206.16255"	"0.00003"	"150000"	"3.0e+06"		"0.9426481"	"6.9546309"	"5s2.5p5"	"2P*"	"1/2"	"5s2.5p4.(3P<2>).6s"	"2[2]"	"3/2"	2	4		"T7227"	"L13998"	

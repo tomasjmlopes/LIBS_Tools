@@ -77,7 +77,7 @@ class EmissionToolkit:
         df['Relative Intensity'] = df['Relative Intensity'].astype(float)
         return df
 
-    def process_database(self, lower_limit: float = 250, upper_limit: float = 800, ion_num: int = 1) -> np.ndarray:
+    def process_database(self, lower_limit: float = 250, upper_limit: float = 800, ion_num: int = 3) -> np.ndarray:
         """
         Process the spectral line database with specified filters.
 
@@ -93,7 +93,7 @@ class EmissionToolkit:
         df['Line'] = df['Line'].round(2)
         df = df[(df['Relative Intensity'] > 0.01) & 
                 (df['Line'].between(lower_limit, upper_limit)) & 
-                (df['Ion'] == ion_num)]
+                (df['Ion'] <= ion_num)]
         
         df['Relative Intensity'] = df['Relative Intensity'].round(3)
         df['Class'] = df['Relative Intensity'].apply(self._classify_intensity)
@@ -102,7 +102,7 @@ class EmissionToolkit:
         self.dbase = df
         return df.to_numpy()
 
-    def identify_elements(self, x_features: List[float], wavelength_tolerance: float = 0.5) -> Dict[str, List[Tuple[float, float, float, str]]]:
+    def identify_elements(self, x_features: List[float], wavelength_tolerance: float = 0.5, max_ion: int = 3) -> Dict[str, List[Tuple[float, float, float, str]]]:
         """
         Identify elements based on the emission lines present in x_features.
 
@@ -113,7 +113,7 @@ class EmissionToolkit:
         Returns:
             Dict[str, List[Tuple[float, float, float, str]]]: Identified elements with their spectral lines.
         """
-        emission_lines = self.process_database()
+        emission_lines = self.process_database(ion_num = max_ion)
         identified_elements = {}
 
         for feature in x_features:

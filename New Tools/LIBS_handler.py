@@ -372,8 +372,8 @@ class LIBS_Toolkit:
         self.features = self.manual_features(self.x_features, sigma = sigma)
 
 
-    def id_features(self, wavelength_tolerance: float = 0.2):
-        self.ids_features = self.emission_tkit.identify_elements(self.x_features, wavelength_tolerance = wavelength_tolerance)
+    def id_features(self, wavelength_tolerance: float = 0.2, max_ion: int = 3):
+        self.ids_features = self.emission_tkit.identify_elements(self.x_features, wavelength_tolerance = wavelength_tolerance, max_ion = max_ion)
 
     def detailed_ids(self):
         return self.emission_tkit.print_identified_elements()

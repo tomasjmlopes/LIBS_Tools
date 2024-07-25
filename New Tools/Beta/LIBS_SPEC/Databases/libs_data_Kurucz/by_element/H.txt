@@ -1,0 +1,3 @@
+,Wl/nm,E_Photon,A-Value,Elem. num,Element,ion state,E_lower_lev.,J_lower,E_upper_lev.,J_upper,Ref.,ion state num,g_j
+76084,656.101,1.889188,132400000.0,1.0,H,I,10.201626,1.5,12.090795,2.5,,1.0,6.0
+76094,656.2797,1.888695,132300000.0,1.0,H,I,10.198829,1.5,12.087505,2.5,,1.0,6.0

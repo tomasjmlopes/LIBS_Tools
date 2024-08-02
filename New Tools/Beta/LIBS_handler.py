@@ -9,6 +9,7 @@ from scipy.signal import find_peaks
 from numpy.lib.stride_tricks import sliding_window_view
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from matplotlib import gridspec
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from typing import Dict, List, Tuple
@@ -375,8 +376,8 @@ class LIBS_Toolkit:
         self.features = self.manual_features(self.x_features, sigma = sigma)
 
 
-    def id_features(self, wavelength_tolerance: float = 0.2):
-        self.ids_features = self.emission_tkit.identify_elements(self.x_features, wavelength_tolerance = wavelength_tolerance)
+    def id_features(self, wavelength_tolerance: float = 0.2, ion_num: int = 2, min_intensity: float = 0.01):
+        self.ids_features = self.emission_tkit.identify_elements(self.x_features, wavelength_tolerance = wavelength_tolerance, ion_num = ion_num, min_intensity = min_intensity)
 
     def detailed_ids(self):
         return self.emission_tkit.print_identified_elements()
@@ -515,19 +516,6 @@ class LIBS_Toolkit:
             raise IOError(f"Error loading wavelength data: {str(e)}")
         
         return image
-    
-    def basic_analysis(self, wavelength):
-        fig, axs = plt.subplots(1, 2, figsize = (10, 4))
-        ax = axs[0]
-        ax.imshow(self.dataset[:, :, self.wavelength_to_index(wavelength)])
-        ax.axis('off')
-
-        ax = axs[1]
-        ax.plot(self.wavelengths, self.dataset[self.x_size//2, self.y_size//2, :], 
-                color = 'r', 
-                label = 'LIBS Data')
-        ax.legend()
-        fig.tight_layout()
 
     def calculate_average_spectrum(self) -> np.ndarray:
         """
@@ -574,3 +562,87 @@ class LIBS_Toolkit:
         print("Estimated Element Probabilities:")
         for element, prob in sorted(probabilities.items(), key=lambda x: x[1], reverse=True):
             print(f"{element}: {prob*100:.2f}%")
+
+    def standard_analysis(self, radius = 3, cmap = 'inferno'):
+        mean_signal = np.mean(self.dataset, axis = (0, 1))
+        min_signal = np.min(self.dataset, axis = (0, 1))
+        max_signal = np.max(self.dataset, axis = (0, 1))
+
+
+        fig = plt.figure(tight_layout = True, figsize = (10, 5))
+        gs = gridspec.GridSpec(1, 2)
+
+        ax1 = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
+
+        x_center, y_center = self.y_size//2, self.x_size//2
+
+        fig.suptitle('LIBS Signal Analysis', fontsize = 20)
+
+        #######################################################
+        #                                                     #
+        #       Plot Spectrum (Average, MinMax, Point)        #
+        #                                                     #
+        #######################################################
+
+        axs = ax1
+        axs.plot(self.wavelengths, mean_signal, lw = 2, ls = '-', color = 'lightblue', label = 'Mean')
+        meanr, = axs.plot(self.wavelengths, self.dataset[x_center - radius:x_center + radius, y_center - radius:y_center + radius].mean(axis = (0, 1)),
+                        color = 'darkblue',
+                        label = 'Point Mean',
+                        lw = 2)
+        axs.fill_between(self.wavelengths, min_signal, max_signal, color = 'steelblue', alpha = 0.2)
+
+        wn = 120
+        line = axs.axvline(self.wavelengths[wn], lw = '1', alpha = 0.5, color = 'red', label = 'Mapped Wavelength')
+        axs.set_xlabel(r'Wavelength $(nm)$')
+        axs.set_ylabel(r'Intensity (arb.un.)')
+        axs.legend(fancybox = True, shadow = True)
+        axs.grid(False)
+
+        #######################################################
+        #                                                     #
+        #  Spatial Distribuition of selected emission line    #
+        #                                                     #
+        #######################################################
+
+        axs = ax2
+        axs.set_title('Spatial Distribuition')
+        spatial_dist = axs.imshow(self.dataset[:, :, wn], cmap = cmap, interpolation = 'gaussian')
+        sca = axs.scatter(x_center, y_center, color = 'k', s = 40)
+        axs.set_xlabel(r'$x(mm)$')
+        axs.set_ylabel(r'$y(mm)$')
+        axs.grid(False)
+
+        #######################################################
+        #                                                     #
+        #             Functions for Interaction               #
+        #                                                     #
+        #######################################################
+
+        def update_map(wn):
+            spatial_dist.set_data(self.dataset[:, :, wn]) 
+            spatial_dist.set_clim(vmin = self.dataset[:, :, wn].min(), vmax = self.dataset[:, :, wn].max())
+            line.set_xdata(self.wavelengths[wn])
+
+        def onclick(event):
+            if event.dblclick:
+                if event.inaxes == ax1:
+                    ix, _ = event.xdata, event.ydata
+                    wn = self.wavelength_to_index(ix)
+                    update_map(wn)
+                    fig.canvas.draw_idle()
+                elif event.inaxes == ax2:
+                    xx, yy = int(event.xdata), int(event.ydata)
+                    sca.set_offsets([xx, yy])
+                    data_region = self.dataset[yy - radius:yy + radius, xx - radius:xx + radius]
+                    if data_region.shape == (2*radius, 2*radius, self.spectral_size) and radius != 0:
+                        meanr.set_data(self.wavelengths, data_region.mean(axis = (0, 1)))
+                    else:
+                        meanr.set_data(self.wavelengths, self.dataset[yy, xx])
+                    fig.canvas.draw_idle()
+                
+        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+
+
+        fig.tight_layout()
